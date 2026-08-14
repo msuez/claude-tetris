@@ -13,6 +13,11 @@ const COLORS = [
   '#e57373', // Z - red
   '#42a5f5', // J - blue
   '#ffb74d', // L - orange
+  '#f06292', // + pentomino - pink
+  '#9575cd', // U pentomino - deep purple
+  '#4db6ac', // Y pentomino - teal
+  '#90a4ae', // hollow 3x3 "nut" - steel gray
+  '#fff176', // 1x1 single - gold (Tetris reward)
 ];
 
 const PIECES = [
@@ -24,7 +29,20 @@ const PIECES = [
   [[5,5,0],[0,5,5],[0,0,0]],                  // Z
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
+  [[0,8,0],[8,8,8],[0,8,0]],                  // + pentomino
+  [[9,0,9],[9,9,9]],                          // U pentomino
+  [[0,10],[10,10],[0,10],[0,10]],             // Y pentomino
+  [[11,11,11],[11,0,11],[11,11,11]],          // hollow 3x3 "nut"
+  [[12]],                                      // 1x1 single
 ];
+
+const STANDARD_TYPES = 7;
+const PENTOMINO_TYPES = [8, 9, 10];
+const CHALLENGE_TYPE = 11; // hollow 3x3 "nut"
+const REWARD_TYPE = 12;    // 1x1 single, granted after a Tetris
+
+const PENTOMINO_CHANCE = 0.10;
+const CHALLENGE_CHANCE = 0.05;
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
@@ -43,16 +61,27 @@ const themeToggleBtn = document.getElementById('theme-toggle');
 
 const THEME_KEY = 'tetris-theme';
 
-let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
+let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, rewardPending;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
-function randomPiece() {
-  const type = Math.floor(Math.random() * 7) + 1;
+function makePiece(type) {
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
+}
+
+function randomType() {
+  const r = Math.random();
+  if (r < CHALLENGE_CHANCE) return CHALLENGE_TYPE;
+  if (r < CHALLENGE_CHANCE + PENTOMINO_CHANCE)
+    return PENTOMINO_TYPES[Math.floor(Math.random() * PENTOMINO_TYPES.length)];
+  return Math.floor(Math.random() * STANDARD_TYPES) + 1;
+}
+
+function randomPiece() {
+  return makePiece(randomType());
 }
 
 function collide(shape, ox, oy) {
@@ -111,6 +140,7 @@ function clearLines() {
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
+    if (cleared === 4) rewardPending = true;
     updateHUD();
   }
 }
@@ -146,7 +176,8 @@ function lockPiece() {
 
 function spawn() {
   current = next;
-  next = randomPiece();
+  next = rewardPending ? makePiece(REWARD_TYPE) : randomPiece();
+  rewardPending = false;
   if (collide(current.shape, current.x, current.y)) {
     endGame();
   }
@@ -278,6 +309,7 @@ function init() {
   gameOver = false;
   dropInterval = 1000;
   dropAccum = 0;
+  rewardPending = false;
   lastTime = performance.now();
   next = randomPiece();
   spawn();

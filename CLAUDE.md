@@ -26,8 +26,9 @@ There is no test suite, linter, or build/bundle command in this repo.
 
 Everything lives in one file with module-level `let` state (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, etc.) — no classes, no state management library.
 
-- **Board model**: `ROWS × COLS` matrix; each cell is `0` (empty) or a color index `1–7` identifying which piece locked there.
-- **Pieces**: `PIECES` array of square matrices (index 0 unused/null). Rotation is done via `rotateCW` (transpose + reverse), not by storing pre-rotated states.
+- **Board model**: `ROWS × COLS` matrix; each cell is `0` (empty) or a color index `1–12` identifying which piece locked there.
+- **Pieces**: `PIECES` array of matrices (index 0 unused/null), indices `1–7` are the standard tetrominoes, `8–10` are pentominoes (`+`, `U`, `Y`), `11` is a hollow 3×3 "nut" piece, `12` is a 1×1 single. Rotation is done via `rotateCW` (transpose + reverse), which works for non-square shapes too, not by storing pre-rotated states.
+- **Piece selection** (`randomType`): weighted roll — `CHALLENGE_CHANCE` (5%) for the hollow 3×3 nut, `PENTOMINO_CHANCE` (10%) for one of the three pentominoes, otherwise one of the 7 standard tetrominoes. The 1×1 single (`REWARD_TYPE`) is never drawn randomly — `clearLines` sets `rewardPending` on a 4-line clear, and `spawn` forces the next generated piece to be the single as a reward.
 - **Collision** (`collide`): checks board bounds and overlap with locked cells for a given shape/offset.
 - **Wall kicks** (`tryRotate`): after rotating, tries offsets `[0, -1, 1, -2, 2]` until one doesn't collide, else the rotation is discarded.
 - **Game loop** (`loop`): driven by `requestAnimationFrame`; accumulates elapsed time in `dropAccum` and advances the piece one row once `dropInterval` is exceeded, otherwise calls `lockPiece()`.
@@ -41,4 +42,4 @@ Control flow: `init()` resets state → `spawn()` promotes `next` to `current` a
 
 ## Tunable constants (top of `game.js`)
 
-`COLS`, `ROWS`, `BLOCK`, `COLORS`, `LINE_SCORES`, `dropInterval` (initial). If `COLS`/`ROWS`/`BLOCK` change, update the `#board` canvas `width`/`height` in `index.html` to match (`COLS × BLOCK`, `ROWS × BLOCK`).
+`COLS`, `ROWS`, `BLOCK`, `COLORS`, `LINE_SCORES`, `dropInterval` (initial), `PENTOMINO_CHANCE`, `CHALLENGE_CHANCE`. If `COLS`/`ROWS`/`BLOCK` change, update the `#board` canvas `width`/`height` in `index.html` to match (`COLS × BLOCK`, `ROWS × BLOCK`).
