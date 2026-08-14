@@ -201,6 +201,8 @@ function draw() {
     for (let c = 0; c < COLS; c++)
       drawBlock(ctx, c, r, board[r][c], BLOCK);
 
+  if (gameOver) return;
+
   // ghost
   const gy = ghostY();
   for (let r = 0; r < current.shape.length; r++)
@@ -228,6 +230,7 @@ function drawNext() {
 function endGame() {
   gameOver = true;
   cancelAnimationFrame(animId);
+  draw();
   overlayTitle.textContent = 'GAME OVER';
   overlayScore.textContent = `Puntuación: ${score.toLocaleString()}`;
   overlay.classList.remove('hidden');
@@ -238,6 +241,8 @@ function togglePause() {
   paused = !paused;
   if (!paused) {
     lastTime = performance.now();
+    dropAccum = 0;
+    overlay.classList.add('hidden');
     loop(lastTime);
   } else {
     cancelAnimationFrame(animId);
@@ -252,11 +257,12 @@ function loop(ts) {
   lastTime = ts;
   dropAccum += dt;
   if (dropAccum >= dropInterval) {
-    dropAccum = 0;
+    dropAccum -= dropInterval;
     if (!collide(current.shape, current.x, current.y + 1)) {
       current.y++;
     } else {
       lockPiece();
+      if (gameOver) return;
     }
   }
   draw();
@@ -286,15 +292,21 @@ document.addEventListener('keydown', e => {
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
+      e.preventDefault();
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
       break;
     case 'ArrowRight':
+      e.preventDefault();
       if (!collide(current.shape, current.x + 1, current.y)) current.x++;
       break;
     case 'ArrowDown':
+      e.preventDefault();
       softDrop();
       break;
     case 'ArrowUp':
+      e.preventDefault();
+      tryRotate();
+      break;
     case 'KeyX':
       tryRotate();
       break;
@@ -306,7 +318,10 @@ document.addEventListener('keydown', e => {
   updateHUD();
 });
 
-restartBtn.addEventListener('click', init);
+restartBtn.addEventListener('click', () => {
+  restartBtn.blur();
+  init();
+});
 
 function applyTheme(theme) {
   document.body.classList.toggle('light-theme', theme === 'light');
