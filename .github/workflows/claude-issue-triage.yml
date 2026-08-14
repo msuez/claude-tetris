@@ -33,7 +33,8 @@ jobs:
           # Requerido para triagear issues abiertos por usuarios sin permiso de write.
           # Quitar esta línea si se quiere restringir el triage a colaboradores con write.
           allowed_non_write_users: "*"
-          prompt: "/triage-issue REPO: ${{ github.repository }} ISSUE_NUMBER: ${{ github.event.issue.number }}"
+          # El comentario publicado debe usar formato Markdown válido para que GitHub lo renderice correctamente
+          prompt: "/triage-issue REPO: ${{ github.repository }} ISSUE_NUMBER: ${{ github.event.issue.number }}. El comentario que publiques debe estar en formato Markdown que GitHub pueda renderizar correctamente."
         env:
           # Tope duro de invocaciones por script en un run (guard anti-runaway, ver docs/security.md)
           CLAUDE_CODE_SCRIPT_CAPS: '{"edit-issue-labels.sh":2,"comment-issue.sh":1}'
