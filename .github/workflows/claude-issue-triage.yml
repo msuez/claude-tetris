@@ -1,0 +1,39 @@
+name: Claude Issue Triage
+
+on:
+  issues:
+    types: [opened, edited]
+
+# Ediciones rápidas y sucesivas cancelan el análisis anterior
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    # Evita re-disparos por ediciones hechas por bots (incl. claude[bot])
+    if: github.event.sender.type != 'Bot'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Triage issue with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          # Requerido para triagear issues abiertos por usuarios sin permiso de write.
+          # Quitar esta línea si se quiere restringir el triage a colaboradores con write.
+          allowed_non_write_users: "*"
+          prompt: "/triage-issue REPO: ${{ github.repository }} ISSUE_NUMBER: ${{ github.event.issue.number }}"
+        env:
+          # Tope duro de invocaciones por script en un run (guard anti-runaway, ver docs/security.md)
+          CLAUDE_CODE_SCRIPT_CAPS: '{"edit-issue-labels.sh":2,"comment-issue.sh":1}'
